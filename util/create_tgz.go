@@ -11,20 +11,19 @@ import (
 )
 
 type TarGzArgs struct {
+	Name   string
 	Src    string
 	DstDir string
 }
 
 func (t *TarGzArgs) CreateArchive() error {
-	src, dstdir := t.Src, t.DstDir
+	name, src, dstdir := t.Name, t.Src, t.DstDir
 
-	fmt.Println("Creating tar file")
 	tarFile, err := tarIt(src)
 	if err != nil {
 		return err
 	}
-	fmt.Println("Creating gzip file")
-	err = gzipIt(tarFile, dstdir)
+	err = gzipIt(tarFile, name, dstdir)
 	if err != nil {
 		return err
 	}
@@ -33,15 +32,21 @@ func (t *TarGzArgs) CreateArchive() error {
 }
 
 // Create Gzip file
-func gzipIt(source, target string) error {
+func gzipIt(source, name, target string) error {
+
+	if _, err := os.Stat(target); err != nil {
+		os.MkdirAll(target, 0755)
+	}
+
+	fileName := target + "/" + name
+	fmt.Printf("Creating Gzip:\n\tSource: '%v'\n\tArchive: '%v'\n", source, fileName)
+
 	reader, err := os.Open(source)
 	if err != nil {
 		return err
 	}
 
-	fileName := filepath.Base(source)
-	target = fmt.Sprintf("%s.gz", fileName)
-	writer, err := os.Create(target)
+	writer, err := os.Create(fileName)
 	if err != nil {
 		return err
 	}
@@ -59,14 +64,14 @@ func gzipIt(source, target string) error {
 func tarIt(source string) (string, error) {
 	fileName := filepath.Base(source)
 	fileName = fmt.Sprintf("%s.tar", fileName)
-	fmt.Println("Opening file for writing")
+	fmt.Printf("Creating Tarball:\n\tSource: '%v'\n\tArchive: '%v'\n", source, fileName)
+
 	tarFile, err := os.Create(fileName)
 	if err != nil {
 		return fileName, err
 	}
 	defer tarFile.Close()
 
-	fmt.Println("About to write to file")
 	tarBall := tar.NewWriter(tarFile)
 	defer tarBall.Close()
 

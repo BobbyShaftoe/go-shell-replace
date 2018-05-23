@@ -2,24 +2,21 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	_ "io"
-	_ "os"
-
-	"github.com/BobbyShaftoe/go-shell-replace/config"
-	"github.com/BobbyShaftoe/go-shell-replace/types"
-	"github.com/BobbyShaftoe/go-shell-replace/util"
-	_ "github.com/BobbyShaftoe/go-shell-replace/util"
 	"log"
 	"os"
 	"time"
-	_ "time"
+
+	"github.com/BobbyShaftoe/go-shell-replace/config"
+	"github.com/BobbyShaftoe/go-shell-replace/types"
+	_ "github.com/BobbyShaftoe/go-shell-replace/types"
+	"github.com/BobbyShaftoe/go-shell-replace/util"
 )
 
 // curl -u artifactory:d41d8cd98f00b204e9800998ecf8427e -X PUT "http://10.30.0.51/artifactory/cloud/env-confs/env-confs-1526139982.zip" -T env-confs-1526139982.zip
 const configFile = "../artifactory/config.yml"
 
-var project, gitCommit, httpProxy, httpsProxy string
+var project, gitCommit, httpProxy, httpsProxy, archiveFilesDir, archiveDstDir string
 
 func main() {
 
@@ -27,50 +24,49 @@ func main() {
 	flag.StringVar(&yamlFile, "config", configFile, "a string")
 	flag.Parse()
 
-	fmt.Println("Configuration file:", yamlFile)
-
-	if _, err := os.Stat(yamlFile); err == nil {
-		y := &config.YamlConfig{}
-		y.ParseYaml(yamlFile)
-		project, gitCommit, httpProxy, httpsProxy = y.Project, y.GitCommit, y.HttpProxy, y.HttpsProxy
-	} else {
-		c := &types.EnvConfig{}
-		c.SetEnv()
-		project, gitCommit, httpProxy, httpsProxy = c.Project, c.GitCommit, c.HttpProxy, c.HttpsProxy
+	if _, err := os.Stat(yamlFile); err != nil {
+		yamlFile = ""
 	}
+	conf := &config.Configuration{}
+	project, gitCommit, httpProxy, httpsProxy, archiveFilesDir, archiveDstDir = conf.DoConfig(yamlFile, true)
 
-	timeNow := time.Now()
-	timeStamp := timeNow.Format("20060102_150405")
-	archiveName := project + "-" + timeStamp + ".tar.gz"
+	versionFile, archiveName := makeFileNames(project)
 
-	file, err := os.Create(project + "-version.txt")
+	// Create version file
+	file, err := os.Create(versionFile)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
-
+	// Write archive name to version file
 	content := []byte(archiveName + "\n")
 	_, err = file.Write(content)
 	if err != nil {
 		log.Printf("Error while writing to file: %v", err)
 	}
 
-	src := "test"
-	dst := "tmp/" + project
-	c := &util.CopyDirArgs{nil, src, dst, 0755, true}
-
+	// Copy files for archiving into destination directory
+	src, dst := "test", archiveFilesDir+"/"+project
+	//src, dst := "test", "tmp/"+project
+	c := &util.CopyDirArgs{Src: src, Dst: dst, Mode: 0755, IgnoreDot: true}
 	if err = c.CopyDir(); err != nil {
 		log.Printf("Error copying directory %v\n", err)
 	}
 
-	t := &util.TarGzArgs{dst, "."}
+	// Create project files archive
+	src = archiveFilesDir + "/" + project
+	t := &util.TarGzArgs{Name: archiveName, Src: src, DstDir: archiveDstDir}
 	if err = t.CreateArchive(); err != nil {
 		log.Printf("Error creating archive %v\n", err)
 	}
 
-	//file, err = os.Create(archiveName)
-	//if err != nil {
-	//		log.Fatal(err)
-	//}
+}
 
+// Function to create file names
+func makeFileNames(p string) (string, string) {
+	timeNow := time.Now()
+	timeStamp := timeNow.Format(types.TimestampFormat)
+	archiveName := p + "-" + timeStamp + ".tar.gz"
+	versionFile := p + "-version.txt"
+	return versionFile, archiveName
 }
