@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"github.com/BobbyShaftoe/go-shell-replace/config"
-	"github.com/BobbyShaftoe/go-shell-replace/types"
-	_ "github.com/BobbyShaftoe/go-shell-replace/types"
 	"github.com/BobbyShaftoe/go-shell-replace/util"
+	"github.com/BobbyShaftoe/go-shell-replace/pvars"
 )
 
 // curl -u artifactory:d41d8cd98f00b204e9800998ecf8427e -X PUT "http://10.30.0.51/artifactory/cloud/env-confs/env-confs-1526139982.zip" -T env-confs-1526139982.zip
@@ -47,7 +46,6 @@ func main() {
 
 	// Copy files for archiving into destination directory
 	src, dst := "test", archiveFilesDir+"/"+project
-	//src, dst := "test", "tmp/"+project
 	c := &util.CopyDirArgs{Src: src, Dst: dst, Mode: 0755, IgnoreDot: true}
 	if err = c.CopyDir(); err != nil {
 		log.Printf("Error copying directory %v\n", err)
@@ -65,7 +63,7 @@ func main() {
 // Function to create file names
 func makeFileNames(p string) (string, string) {
 	timeNow := time.Now()
-	timeStamp := timeNow.Format(types.TimestampFormat)
+	timeStamp := timeNow.Format(pvars.TimestampFormat)
 	archiveName := p + "-" + timeStamp + ".tar.gz"
 	versionFile := p + "-version.txt"
 	return versionFile, archiveName

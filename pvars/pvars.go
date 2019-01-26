@@ -1,4 +1,4 @@
-package types
+package pvars
 
 //import (
 //		_ "log"
@@ -6,7 +6,7 @@ package types
 //)
 
 const TimestampFormat  = "20060102_150405"
-
+const PackageName = "pvars"
 
 
 //type vars interface {

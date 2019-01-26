@@ -1,0 +1,9 @@
+---
+
+project: go-test-project
+git_commit: ea85c54464f449fa4be43869fbb6728006cc5966
+http_proxy: "http://10.0.0.254"
+https_proxy: "http://10.0.0.254"
+archive_files_dir: tmp
+archive_dst_dir: archive
+
